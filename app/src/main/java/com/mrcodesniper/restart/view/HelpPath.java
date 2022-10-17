@@ -46,7 +46,7 @@ public class HelpPath {
         //初始化网格画笔
         paint.setStrokeWidth(2);
         paint.setColor(Color.GRAY);
-        paint.setStyle(Paint.Style.STROKE);
+        paint.setStyle(Paint.Style.STROKE); //虚线
         //设置虚线效果new float[]{可见长度, 不可见长度},偏移值
         paint.setPathEffect(new DashPathEffect(new float[]{10, 5}, 0));
         canvas.drawPath(HelpPath.gridPath(50, winSize), paint);
@@ -56,8 +56,10 @@ public class HelpPath {
     /**
      * 获得屏幕可展示内容区域高度
      * 例如三星S10 分辨率为3040*1440
-     * 在横屏情况下 获取到的像素宽高为2723*1440
-     * 存在317像素是顶部栏和导航栏等工具视图的像素
+     * 底部栏隐藏清空下
+     * 在竖屏情况下 屏幕宽为:1440,可用屏幕高为:2891,状态栏高度:150
+     * 在横屏情况下 可用屏幕宽为:2891,屏幕高为:1440,状态栏高度:84  ？？？？ 为什么状态栏高度变化了
+     * 正常情况下 可用屏幕高度+状态栏高度+导航栏高度 =  设备高像素
      *
      *
      * @param ctx 上下文
@@ -66,13 +68,26 @@ public class HelpPath {
     public static void loadWinSize(Context ctx, Point winSize) {
         WindowManager wm = (WindowManager) ctx.getSystemService(Context.WINDOW_SERVICE);
         DisplayMetrics outMetrics = new DisplayMetrics();
+        DisplayMetrics realMetrics = new DisplayMetrics();
         if (wm != null) {
-            wm.getDefaultDisplay().getMetrics(outMetrics);//获取window默认展示屏幕的像素信息
+            wm.getDefaultDisplay().getMetrics(outMetrics);//获取window屏幕可用的像素信息
+            wm.getDefaultDisplay().getRealMetrics(realMetrics); //获取window屏幕真实的像素信息
         }
-        winSize.x = outMetrics.widthPixels;
-        winSize.y = outMetrics.heightPixels;
-        int statusHeight = getStatusBarHeight(ctx);
+        int usableWidth = outMetrics.widthPixels;
+        int usableHeight = outMetrics.heightPixels;
+        int realWidth = realMetrics.widthPixels;
+        winSize.x = usableWidth;
+        winSize.y = usableHeight;
+
+        int statusHeight = ScreenUtils.Companion.getStatusHeight(ctx);
+        int statusHeight2 = StatusBarUtil.INSTANCE.getStatusBarHeight(ctx);
+        Log.d(Constant.LOG_TAG,"statusHeight1:"+statusHeight+",statusHeight2:"+statusHeight2);
         Log.d(Constant.LOG_TAG,"屏幕宽为:"+winSize.x+",屏幕高为:"+winSize.y+",状态栏高度:"+statusHeight+",底部栏高度:"+getNavigationBarHeight(ctx));
+    }
+
+    public static boolean hasNavigationBar(Context ctx){
+        int id = ctx.getResources().getIdentifier("config_showNavigationBar", "bool", "android");
+        return id > 0 && ctx.getResources().getBoolean(id);
     }
 
     public static int getNavigationBarHeight(Context ctx) {
