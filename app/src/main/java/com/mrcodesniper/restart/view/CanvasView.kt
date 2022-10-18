@@ -2,6 +2,7 @@ package com.mrcodesniper.restart.view
 
 import android.content.Context
 import android.graphics.*
+import android.os.Build
 import android.view.View
 import com.mrcodesniper.restart.R
 
@@ -42,6 +43,7 @@ class CanvasView(context: Context) : View(context) {
         //绘制背景颜色 这里的255为十进制值 如果想绘制蓝色 #03DAC5 这里是16进制表示 两个16进制表示一个色素
         //通过转化后则为 48,218,197
         canvas?.drawRGB(48,218,197)
+        //canvas?.rotate(45f) //画布旋转 之后的绘制都会在这个角度上旋转
         HelpPath.drawGrid(canvas, mWinSize, mGridPaint)
         HelpPath.drawCoo(canvas, mCoo, mWinSize, mGridPaint)
         //canvas通过画笔进行绘制 view作为我们代码编写的地方作为控制者调度绘制 实现view的自定义
@@ -55,8 +57,37 @@ class CanvasView(context: Context) : View(context) {
                 drawBitmap(canvas,mRedPaint!!)
                 drawText(canvas,mRedPaint!!)
                 drawPicture(canvas,mRedPaint!!)
+                drawRotateRect(canvas,mRedPaint!!)
+                drawTranslateAndRotateRect(canvas,mRedPaint!!)
+                drawTranslateAndScaleRect(canvas,mRedPaint!!)
+//                clip(canvas,mRedPaint!!,true)
+//                clip(canvas,mRedPaint!!,false)
             }
         }
+    }
+
+    /**
+     * 画布内外裁剪
+     */
+    private fun clip(canvas: Canvas,paint:Paint,isOutRect:Boolean){
+        //原图
+        paint.color = Color.parseColor("#880FB5FD")
+        paint.strokeWidth = 30f
+        canvas.drawRect(mCoo.x+0f, mCoo.y+0f, mCoo.x+200f, mCoo.y+300f, paint)
+        //裁剪
+        paint.color = Color.RED
+        paint.strokeWidth = 30f
+        val rect = Rect(mCoo.x+20,mCoo.y+100,mCoo.x+250,mCoo.y+300)
+        if(isOutRect){
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                canvas.clipOutRect(rect) //确定外裁剪范围
+            }
+        }else{
+            canvas.clipRect(rect) //确定内裁剪范围
+        }
+        //内裁剪后续绘制了图形在裁剪范围内的保留
+        //外裁剪后续绘制了图形在裁剪范围外的保留
+        canvas.drawRect(mCoo.x+0f, mCoo.y+0f, mCoo.x+200f, mCoo.y+300f, paint)
     }
 
     /**
@@ -97,6 +128,63 @@ class CanvasView(context: Context) : View(context) {
         canvas.drawRect(mCoo.x+600f,mCoo.y-400f,mCoo.x+1000f,mCoo.y-200f,paint)
 
         canvas.drawRoundRect(mCoo.x+1100f,mCoo.y-400f,mCoo.x+1500f,mCoo.y-200f,20f,20f,paint)
+    }
+
+    /**
+     * 嵌套图层操作
+     */
+    private fun drawTranslateAndScaleRect(canvas: Canvas,paint:Paint){
+        //1.先将画布平移到坐标系原点 绘制矩形
+        canvas.save()
+        paint.color = Color.RED
+        canvas.translate(mCoo.x.toFloat(), mCoo.y.toFloat())
+        canvas.drawRect(-400f,400f,0f,600f,paint)
+
+        canvas.save()
+        paint.color = Color.parseColor("#880FB5FD")
+        canvas.scale(0.5f,0.5f,-400f,400f)//根据中心点缩放2x
+        canvas.drawRect(-400f,400f,0f,600f,paint)
+        canvas.restore()
+
+        canvas.restore()
+    }
+
+    /**
+     * 嵌套图层操作
+     */
+    private fun drawTranslateAndRotateRect(canvas: Canvas,paint:Paint){
+        //1.先将画布平移到坐标系原点 绘制矩形
+        canvas.save()
+        paint.color = Color.RED
+        canvas.translate(mCoo.x.toFloat(), mCoo.y.toFloat())
+        canvas.drawRect(1700f,-400f,2100f,-200f,paint)
+
+        //2.在此基础上 旋转画布 绘制 旋转45度的矩形
+        canvas.save()
+        paint.color = Color.parseColor("#880FB5FD")
+        canvas.rotate(45f,1900f,-300f)
+        canvas.drawRect(1700f,-400f,2100f,-200f,paint)
+        canvas.restore()
+        //内部图层关闭
+
+//        val canvasCount = canvas.saveCount //图层数量
+//        canvas.restoreToCount(1)//直接恢复到第几个图层 类似出栈恢复一样
+
+
+        canvas.restore() //外部图层关闭
+    }
+
+
+    /**
+     * 绘制画布旋转之后的操作
+     */
+    private fun drawRotateRect(canvas: Canvas,paint:Paint){
+        canvas.save() //保存画布状态 出现新的图层
+        paint.color = Color.parseColor("#880FB5FD")
+        paint.strokeWidth = 30f
+        canvas.rotate(45f,mCoo.x+800f,mCoo.y-300f) //根据中心点旋转
+        canvas.drawRect(mCoo.x+600f,mCoo.y-400f,mCoo.x+1000f,mCoo.y-200f,paint)
+        canvas.restore() //画布还原 合并图层
     }
 
     /**
